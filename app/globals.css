@@ -1,0 +1,109 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #000000;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar for light theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Focus styles - exclude form inputs and form containers */
+*:focus-visible:not(input):not(textarea):not(select):not(form):not([class*="form"]):not(.bookmark-form-container) {
+  outline: 2px solid #000;
+  outline-offset: 2px;
+}
+
+/* Explicitly remove focus styles from bookmark form container */
+.bookmark-form-container:focus,
+.bookmark-form-container:focus-visible,
+.bookmark-form-container:focus-within,
+.bookmark-form-container:hover:focus,
+.bookmark-form-container:hover:focus-visible {
+  outline: none !important;
+  border-color: rgb(156 163 175) !important; /* gray-400 */
+}
+
+/* Remove all focus styles from form inputs, but allow border-bottom */
+input:focus,
+input:focus-visible,
+input:focus-within,
+textarea:focus,
+textarea:focus-visible,
+textarea:focus-within,
+select:focus,
+select:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  ring: none !important;
+}
+
+/* Keep border-bottom on inputs for underline effect */
+input[type="text"]:focus,
+input[type="url"]:focus,
+input[type="text"]:focus-visible,
+input[type="url"]:focus-visible {
+  border-bottom: 1px solid rgb(209 213 219) !important; /* gray-300 */
+}
+
+/* Remove focus styles from form containers */
+form:focus,
+form:focus-visible,
+form:focus-within,
+div:has(form):focus,
+div:has(form):focus-visible,
+div:has(form):focus-within {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Ensure form containers never get black borders on hover or focus */
+div[class*="border"]:has(form),
+div[class*="border"]:has(form):hover,
+div[class*="border"]:has(form):focus,
+div[class*="border"]:has(form):focus-visible {
+  outline: none !important;
+}
+
+/* Selection color */
+::selection {
+  background-color: rgba(0, 0, 0, 0.1);
+  color: #000000;
+}
