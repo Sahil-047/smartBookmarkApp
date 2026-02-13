@@ -28,7 +28,7 @@ export default function Header({ user }: { user: User }) {
         
         <button
           onClick={handleSignOut}
-          className="px-3 py-1.5 text-sm text-gray-600 hover:text-black hover:bg-gray-100 rounded transition-colors"
+          className="px-3 py-1.5 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
         >
           Sign out
         </button>

@@ -1,5 +1,4 @@
 -- Smart Bookmark App - Database Schema and RLS Policies
--- Run this in your Supabase SQL Editor to set up the database
 
 -- Create bookmarks table
 CREATE TABLE IF NOT EXISTS bookmarks (

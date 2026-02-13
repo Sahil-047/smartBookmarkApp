@@ -1,276 +1,267 @@
-# Smart Bookmark App
+Smart Bookmark App
 
-A simple, real-time bookmark manager built with Next.js, Supabase, and Tailwind CSS.
+A simple real-time bookmark manager built with Next.js 15, Supabase, Tailwind, and TypeScript.
+Built as a 72-hour assessment project.
 
-## Features
+Features
 
-- ✅ Google OAuth authentication (no email/password)
-- ✅ Add bookmarks with title and URL
-- ✅ Private bookmarks per user (using Row Level Security)
-- ✅ Real-time updates across multiple tabs
-- ✅ Delete your own bookmarks
-- ✅ Clean, minimal UI with Tailwind CSS
-- ✅ Deployed on Vercel
+Google OAuth authentication (no email/password)
+Private bookmarks per user (RLS secured)
+Add & delete bookmarks
+Real-time sync across multiple tabs
+Clean Tailwind UI
+Deployed on Vercel
 
-## Tech Stack
+Tech Stack
 
-- **Next.js 15** (App Router)
-- **Supabase** (Authentication, Database, Realtime)
-- **Tailwind CSS** (Styling)
-- **TypeScript** (Type safety)
+Next.js 15 (App Router)
+Supabase (Auth, DB, Realtime)
+Tailwind CSS
+TypeScript
 
-## Project Structure
+Project Structure
+app/
+  auth/callback/route.ts
+  login/page.tsx
+  page.tsx
+  layout.tsx
 
-```
-├── app/
-│   ├── auth/callback/route.ts    # OAuth callback handler
-│   ├── login/page.tsx            # Login page
-│   ├── page.tsx                  # Main bookmarks page
-│   └── layout.tsx                # Root layout
-├── components/
-│   ├── AddBookmarkForm.tsx       # Form to add new bookmarks
-│   ├── BookmarkItem.tsx          # Individual bookmark with delete
-│   ├── BookmarksList.tsx         # List with realtime updates
-│   ├── GoogleSignInButton.tsx    # Google OAuth button
-│   └── Header.tsx                # Header with user info
-├── lib/supabase/
-│   ├── client.ts                 # Browser Supabase client
-│   ├── server.ts                 # Server Supabase client
-│   └── middleware.ts             # Session refresh logic
-├── types/
-│   └── database.types.ts         # Database type definitions
-├── middleware.ts                 # Auth middleware
-└── supabase-setup.sql            # Database schema & RLS policies
-```
+components/
+  AddBookmarkForm.tsx
+  BookmarkItem.tsx
+  BookmarksList.tsx
+  GoogleSignInButton.tsx
+  Header.tsx
 
-## Setup Instructions
+lib/supabase/
+  client.ts
+  server.ts
+  middleware.ts
 
-### 1. Clone and Install Dependencies
+types/
+  database.types.ts
 
-```bash
-git clone <your-repo-url>
-cd smart-bookmark-app
-npm install
-```
+middleware.ts
+supabase-setup.sql
 
-### 2. Set Up Supabase Project
 
-1. Go to [supabase.com](https://supabase.com) and create a new project
-2. Wait for the project to finish setting up (this takes 2-3 minutes)
-3. Go to **Project Settings > API** and copy:
-   - Project URL
-   - Anon/Public key
+Setup
+1. Installation
+a. git clone <repo-url>
+b. cd smart-bookmark-app
+c. npm install
 
-### 3. Configure Environment Variables
+2. Supabase Setup
 
-Create a `.env.local` file in the root directory:
+a. Create a new project at supabase.com
+b. Copy: Project URL
+c. Anon/Public key
+d. Add to .env.local:
 
-```env
-NEXT_PUBLIC_SUPABASE_URL=your-project-url.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
-```
+NEXT_PUBLIC_SUPABASE_URL=your-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 
-You can also copy from the template:
-```bash
-cp env.template .env.local
-```
+3. Database Setup
 
-### 4. Set Up Database Schema
+a. Open SQL Editor in Supabase
+b. Paste contents of supabase-setup.sql
+c. Run it
 
-1. Go to your Supabase project dashboard
-2. Click on **SQL Editor** in the sidebar
-3. Create a new query
-4. Copy the contents of `supabase-setup.sql` and paste it
-5. Click **Run** to execute the SQL
+This:
+-- Smart Bookmark App - Database Schema and RLS Policies
+-- Run this in your Supabase SQL Editor to set up the database
 
-This will:
-- Create the `bookmarks` table
-- Enable Row Level Security (RLS)
-- Add RLS policies so users can only see their own bookmarks
-- Enable Realtime for live updates
+-- Create bookmarks table
+CREATE TABLE IF NOT EXISTS bookmarks (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  title TEXT NOT NULL,
+  url TEXT NOT NULL,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
-### 5. Enable Realtime (IMPORTANT!)
+-- Create index on user_id for faster queries
+CREATE INDEX IF NOT EXISTS bookmarks_user_id_idx ON bookmarks(user_id);
 
-1. In Supabase dashboard, go to **Database > Replication**
-2. Find the `bookmarks` table in the list
-3. **Toggle it ON** to enable realtime updates
-4. This allows changes to sync across multiple browser tabs
+-- Create index on created_at for sorting
+CREATE INDEX IF NOT EXISTS bookmarks_created_at_idx ON bookmarks(created_at DESC);
 
-### 6. Configure Google OAuth
+-- Enable Row Level Security
+ALTER TABLE bookmarks ENABLE ROW LEVEL SECURITY;
 
-1. In Supabase dashboard, go to **Authentication > Providers**
-2. Find **Google** and click to configure
-3. Enable Google provider
-4. You need to set up a Google Cloud project:
-   - Go to [Google Cloud Console](https://console.cloud.google.com)
-   - Create a new project (or use existing)
-   - Enable Google+ API
-   - Go to **Credentials** > **Create Credentials** > **OAuth 2.0 Client ID**
-   - Choose **Web application**
-   - Add authorized redirect URI: `https://<your-project-ref>.supabase.co/auth/v1/callback`
-   - Copy the Client ID and Client Secret
-5. Paste Client ID and Secret in Supabase Google provider settings
-6. Save the configuration
+-- RLS Policy: Users can only read their own bookmarks
+CREATE POLICY "Users can view their own bookmarks"
+  ON bookmarks
+  FOR SELECT
+  USING (auth.uid() = user_id);
 
-### 7. Run Locally
+-- RLS Policy: Users can insert their own bookmarks
+CREATE POLICY "Users can insert their own bookmarks"
+  ON bookmarks
+  FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
 
-```bash
+-- RLS Policy: Users can delete their own bookmarks
+CREATE POLICY "Users can delete their own bookmarks"
+  ON bookmarks
+  FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- RLS Policy: Users can update their own bookmarks
+CREATE POLICY "Users can update their own bookmarks"
+  ON bookmarks
+  FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- Enable Realtime for the bookmarks table
+-- This allows the app to receive real-time updates when bookmarks change
+ALTER PUBLICATION supabase_realtime ADD TABLE bookmarks;
+
+
+Creates bookmarks table
+Enables Row Level Security
+Adds RLS policies
+Enables Realtime
+
+4. Enable Realtime (Important)
+
+Go to Database > Replication
+
+Toggle ON for bookmarks
+
+5. Google OAuth Setup
+
+In Supabase:
+
+Authentication > Providers > Enable Google
+
+In Google Cloud:
+
+Create OAuth 2.0 Client ID
+
+Add redirect URI:
+
+https://<project-ref>.supabase.co/auth/v1/callback
+
+
+Paste Client ID + Secret in Supabase.
+
+For local:
+Add http://localhost:3000 as an authorized domain.
+
+6. Run
 npm run dev
-```
 
-Open [http://localhost:3000](http://localhost:3000) to see the app.
+7. Deploy (Vercel)
 
-For local OAuth testing, you'll need to add `http://localhost:3000` as an authorized domain in Google Cloud Console.
+Push to GitHub
 
-### 8. Deploy to Vercel
+Import to Vercel
 
-1. Push your code to GitHub
-2. Go to [vercel.com](https://vercel.com) and import your repository
-3. Add environment variables in Vercel project settings:
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-4. Deploy!
+Add env variables
 
-After deployment:
-- Update Google OAuth authorized redirect URIs to include your Vercel domain
-- Update Supabase **Site URL** in Authentication settings to your Vercel URL
-- Add your Vercel domain to **Redirect URLs** in Supabase Auth settings
+Update:
 
-## How It Works
+Google OAuth redirect URIs
 
-### Authentication Flow
+Supabase Site URL
 
-1. User clicks "Sign in with Google"
-2. Redirected to Google OAuth consent screen
-3. After approval, Google redirects to `/auth/callback`
-4. Callback exchanges the code for a Supabase session
-5. User is redirected to the home page with active session
+Supabase Redirect URLs
 
-### Real-time Updates
+How It Works
+Authentication Flow
 
-The app uses Supabase Realtime to sync bookmarks across tabs:
+User clicks Google sign-in
 
-```typescript
-// Subscribe to changes for the current user's bookmarks
-const channel = supabase
+Google redirects to /auth/callback
+
+exchangeCodeForSession(code) creates session
+
+User redirected to home
+
+Real-time Sync
+supabase
   .channel('bookmarks-changes')
   .on('postgres_changes', {
     event: '*',
     schema: 'public',
     table: 'bookmarks',
     filter: `user_id=eq.${userId}`,
-  }, (payload) => {
-    // Update UI based on INSERT/UPDATE/DELETE events
-  })
+  }, handleUpdate)
   .subscribe()
-```
 
-When you add or delete a bookmark in one tab, the realtime subscription fires in all other open tabs, keeping them in sync without page refresh.
 
-### Row Level Security (RLS)
+Changes in one tab instantly reflect in others.
 
-RLS policies ensure data privacy:
+Row Level Security
 
-- Users can only SELECT their own bookmarks (`WHERE user_id = auth.uid()`)
-- Users can only INSERT bookmarks with their own user_id
-- Users can only DELETE their own bookmarks
-- Even if someone tries to manipulate the API, Supabase blocks unauthorized access at the database level
+Users can only:
 
-## Problems Faced & Solutions
+SELECT their own bookmarks
 
-### Problem 1: OAuth Redirect Loop
+INSERT with their own user_id
 
-**Issue:** After Google login, the app kept redirecting between `/auth/callback` and `/login`.
+DELETE their own data
 
-**Cause:** The callback wasn't properly exchanging the authorization code for a session.
+RLS blocks unauthorized access at DB level.
 
-**Solution:** Used `supabase.auth.exchangeCodeForSession(code)` instead of `getSession()`. The code exchange is essential for the OAuth flow to complete.
+Problems & Fixes
 
-### Problem 2: Realtime Not Working
+OAuth redirect loop
+→ Used exchangeCodeForSession(code) instead of getSession().
 
-**Issue:** Changes in one tab weren't showing up in another tab.
+Realtime not working
+→ Enabled replication + added:
 
-**Cause 1:** Forgot to enable realtime for the `bookmarks` table in Supabase dashboard.
+ALTER PUBLICATION supabase_realtime ADD TABLE bookmarks;
 
-**Solution:** Go to Database > Replication and toggle ON for the `bookmarks` table.
 
-**Cause 2:** The SQL publication wasn't set up.
+Users saw others’ bookmarks
+→ Enabled RLS:
 
-**Solution:** Added `ALTER PUBLICATION supabase_realtime ADD TABLE bookmarks;` to the setup SQL.
+ALTER TABLE bookmarks ENABLE ROW LEVEL SECURITY;
 
-### Problem 3: Users Could See Other Users' Bookmarks
 
-**Issue:** During testing, realized RLS policies weren't working as expected.
+Session expired
+→ Added middleware calling supabase.auth.getUser() to refresh.
 
-**Cause:** Policies were created but RLS wasn't enabled on the table.
+TypeScript errors (Next 15)
+→ Used await cookies() and @supabase/ssr.
 
-**Solution:** Added `ALTER TABLE bookmarks ENABLE ROW LEVEL SECURITY;` before creating policies. RLS must be explicitly enabled - it's not automatic.
+Design Decisions
 
-### Problem 4: Session Expiration
+App Router for modern Next.js patterns
 
-**Issue:** Users were getting logged out after 1 hour.
+No heavy state management (small app)
 
-**Cause:** Supabase sessions expire and need to be refreshed.
+Supabase handles cross-tab sync
 
-**Solution:** Created middleware that runs on every request to refresh the session using `supabase.auth.getUser()`. This keeps users logged in as long as they're active.
+Clear naming, simple logic, minimal abstraction
 
-### Problem 5: TypeScript Errors with Supabase SSR
+Testing Checklist
 
-**Issue:** Type errors when using `cookies()` in server components.
+Google login works
 
-**Cause:** Next.js 15 changed `cookies()` to be async.
+Add bookmark works
 
-**Solution:** Updated to use `await cookies()` and used `@supabase/ssr` instead of `@supabase/auth-helpers-nextjs` which is deprecated.
+Realtime works in multiple tabs
 
-## Development Notes
+Delete syncs instantly
 
-### Why App Router?
+Different users cannot see each other’s data
 
-Used Next.js App Router (not Pages Router) because:
-- It's the recommended approach for new Next.js projects
-- Better support for Server Components and streaming
-- Cleaner file-based routing
-- Built-in loading and error states
+Future Improvements
 
-### Why No Complex State Management?
+Search & filter
 
-Kept it simple with React's `useState` because:
-- Small app doesn't need Redux/Zustand
-- Supabase realtime handles cross-tab sync for us
-- Server Components handle initial data fetching
-- Component-level state is sufficient
+Tags / folders
 
-### Code Style Choices
+Edit bookmarks
 
-- Short, conversational comments explaining "why" not "what"
-- Clear variable names (`handleSignIn`, not `doAuth`)
-- No unnecessary abstractions (no custom hooks for single-use logic)
-- Kept components focused on single responsibility
-- Used TypeScript for safety but didn't over-type everything
+Import / export
 
-## Testing the App
+Chrome extension
 
-1. **Test OAuth:** Click "Sign in with Google" - should redirect and log you in
-2. **Test Add:** Add a bookmark - should appear immediately
-3. **Test Realtime:** Open in two tabs, add bookmark in one, should appear in both
-4. **Test Delete:** Delete a bookmark - should remove from all tabs
-5. **Test Privacy:** Log in with different Google accounts in different browsers - users shouldn't see each other's bookmarks
+Screenshot previews
 
-## Future Improvements
-
-If I had more time, I'd add:
-- Search/filter bookmarks
-- Tags or categories
-- Edit bookmark functionality
-- Bookmark folders
-- Import/export bookmarks
-- Chrome extension
-- Bookmark previews with screenshots
-
-## License
-
-MIT
-
----
-
-Built as a 72-hour assessment project. Kept simple and practical on purpose.
